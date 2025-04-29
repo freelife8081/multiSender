@@ -2,102 +2,137 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Nuur Token MultiSender</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0 user-scalable=no">
+  <title>SidraChain MultiSender</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; padding: 0; background: #f0f2f5; }
-    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h1 { text-align: center; }
-    textarea, input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid #ccc; }
-    button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-    button:hover { background-color: #45a049; }
-    #status { margin-top: 10px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #wallet-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #wallet-button.connected {
+      background-color: #2ecc71;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button#send-button {
+      margin-top: 20px;
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>Nuur Token MultiSender</h1>
+  <h1>SidraChain MultiSender 🚀</h1>
 
-  <button onclick="connectWallet()" id="connectBtn">Connect Wallet</button>
+  <button id="wallet-button" onclick="connectWallet()">Connect Wallet</button>
 
-  <input type="text" id="token" placeholder="Enter Token Address (NuurToken)">
-  <textarea id="data" rows="8" placeholder="Enter recipients like: 0xabc...,amount"></textarea>
+  <h3>Token Address:</h3>
+  <input type="text" id="token" placeholder="Enter token address here">
 
-  <button onclick="multiSend()">Confirm transaction</button>
+  <h3>Recipients and Amounts:</h3>
+  <textarea id="data" rows="10" placeholder="One address and amount per line. Example:
+0x1234...,100
+0x5678...,200
+"></textarea>
+
+  <button id="send-button" onclick="multiSend()">MultiSend</button>
 
   <div id="status"></div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-<script>
-let provider;
-let signer;
-const multiSendAddress = "0xf7486353403A4f645B8615190B1489BB03250Ca2"; // <-- replace with your deployed multisender address
+  <script>
+    let provider;
+    let signer;
+    const multiSendAddress = "0xf7486353403A4f645B8615190B1489BB03250Ca2"; // <<< replace with your deployed contract
 
-async function connectWallet() {
-  if (typeof window.ethereum === 'undefined') {
-    alert('No wallet detected! Please install MetaMask.');
-    return;
-  }
+    async function connectWallet() {
+      if (typeof window.ethereum !== 'undefined') {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
 
-  try {
-    await ethereum.request({ method: 'eth_requestAccounts' });
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = provider.getSigner();
-    const address = await signer.getAddress();
-    document.getElementById('connectBtn').innerText = 'Wallet Connected: ' + address.slice(0,6) + '...' + address.slice(-4);
-    document.getElementById('status').innerText = '';
-  } catch (err) {
-    document.getElementById('status').innerText = 'Connection failed: ' + err.message;
-  }
-}
-
-async function multiSend() {
-  if (!provider || !signer) {
-    alert('Please connect your wallet first.');
-    return;
-  }
-
-  const tokenAddress = document.getElementById('token').value.trim();
-  const lines = document.getElementById('data').value.trim().split('\n');
-
-  if (!tokenAddress) {
-    alert('Please enter the token address.');
-    return;
-  }
-  if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
-    alert('Please enter at least one recipient and amount.');
-    return;
-  }
-
-  const addresses = [];
-  const amounts = [];
-
-  for (const line of lines) {
-    const [addr, amt] = line.split(',').map(s => s.trim());
-    if (ethers.utils.isAddress(addr) && !isNaN(amt) && amt !== "") {
-      addresses.push(addr);
-      amounts.push(ethers.utils.parseUnits(amt, 9));
-    } else {
-      alert('Invalid line: ' + line);
-      return;
+          const address = await signer.getAddress();
+          const button = document.getElementById('wallet-button');
+          button.innerText = 'Connected: ' + address.slice(0, 6) + '...' + address.slice(-4);
+          button.classList.add('connected');
+        } catch (error) {
+          console.error(error);
+          alert('Connection failed: ' + error.message);
+        }
+      } else {
+        alert('MetaMask not detected. Please install MetaMask.');
+      }
     }
-  }
 
-  const abi = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"multiSend","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdrawNative","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"withdrawTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"}];
-  const contract = new ethers.Contract(multiSendAddress, abi, signer);
+    async function multiSend() {
+      if (!provider || !signer) {
+        alert('Please connect your wallet first.');
+        return;
+      }
 
-  try {
-    const tx = await contract.multiSend(tokenAddress, addresses, amounts);
-    document.getElementById('status').innerHTML = `Tx sent: <a href="https://ledger.sidrachain.com/tx/${tx.hash}" target="_blank">View</a>`;
-    await tx.wait();
-    document.getElementById('status').innerHTML = `Success! Tx confirmed: <a href="https://ledger.sidrachain.com/tx/${tx.hash}" target="_blank">View</a>`;
-  } catch (err) {
-    document.getElementById('status').innerText = 'Transaction failed: ' + err.message;
-  }
-}
-</script>
+      const tokenAddress = document.getElementById('token').value.trim();
+      const lines = document.getElementById('data').value.trim().split('\n');
+
+      if (!tokenAddress) {
+        alert('Please enter the token address.');
+        return;
+      }
+      if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+        alert('Please enter at least one recipient and amount.');
+        return;
+      }
+
+      const addresses = [];
+      const amounts = [];
+
+      for (const line of lines) {
+        const [addr, amt] = line.split(',').map(s => s.trim());
+        if (ethers.utils.isAddress(addr) && !isNaN(amt) && amt !== "") {
+          addresses.push(addr);
+          amounts.push(ethers.utils.parseUnits(amt, 9)); // << 9 decimals for NuurCoin
+        } else {
+          alert('Invalid line: ' + line);
+          return;
+        }
+      }
+
+      const abi = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"multiSend","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdrawNative","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"withdrawTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"}];
+      const contract = new ethers.Contract(multiSendAddress, abi, signer);
+
+      try {
+        const tx = await contract.multiSend(tokenAddress, addresses, amounts);
+        document.getElementById('status').innerHTML = `⏳ Transaction sent: <a href="https://ledger.sidrachain.com/tx/${tx.hash}" target="_blank">View on Explorer</a>`;
+        await tx.wait();
+        document.getElementById('status').innerHTML = `✅ Success! Confirmed: <a href="https://ledger.sidrachain.com/tx/${tx.hash}" target="_blank">View on Explorer</a>`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status').innerText = '❌ Transaction failed: ' + err.message;
+      }
+    }
+  </script>
 
 </body>
 </html>
