@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sidra Token MultiSend</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    h2 { text-align: center; }
+    textarea, input { width: 100%; margin: 10px 0; padding: 10px; }
+    button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #status { margin-top: 15px; font-weight: bold; }
+    img { display: block; margin: auto; max-width: 100px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="logo.png" alt="Logo">
+    <h2>Sidra Token MultiSend</h2>
+    <button onclick="connectWallet()">Connect Wallet</button>
+    <input id="token" placeholder="Token Contract Address (ERC-20)" />
+    <textarea id="data" rows="10" placeholder="Enter address and amount per line:
+0xabc...123, 100
+0xdef...456, 200"></textarea>
+    <button onclick="multiSend()">MultiSend</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    let provider;
+    let signer;
+    const multiSendAddress = "0xYourMultiSendContractAddress"; // Replace after deploying
+    const devAddress = "0xYourDevWalletAddress"; // Replace with your wallet address
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        const net = await provider.getNetwork();
+        if (net.chainId !== 97453) {
+          alert("Please switch to the Sidra Chain network");
+        } else {
+          document.getElementById("status").innerText = "Wallet connected.";
+        }
+      }
+    }
+
+    async function multiSend() {
+      const tokenAddress = document.getElementById("token").value.trim();
+      const lines = document.getElementById("data").value.trim().split('\n');
+      const addresses = [];
+      const amounts = [];
+
+      for (const line of lines) {
+        const [addr, amt] = line.split(',').map(s => s.trim());
+        if (ethers.utils.isAddress(addr) && !isNaN(amt)) {
+          addresses.push(addr);
+          amounts.push(ethers.utils.parseUnits(amt, 18));
+        }
+      }
+
+      if (!tokenAddress || addresses.length === 0) {
+        document.getElementById("status").innerText = "Invalid inputs.";
+        return;
+      }
+
+      const abi = ["function multiSend(address token, address[] calldata recipients, uint256[] calldata amounts) external"];
+      const contract = new ethers.Contract(multiSendAddress, abi, signer);
+
+      try {
+        const tx = await contract.multiSend(tokenAddress, addresses, amounts);
+        document.getElementById("status").innerText = "Transaction sent: " + tx.hash;
+        await tx.wait();
+        document.getElementById("status").innerText = "Transaction confirmed!";
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
