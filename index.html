@@ -112,7 +112,7 @@
         const [addr, amt] = line.split(',').map(s => s.trim());
         if (ethers.utils.isAddress(addr) && !isNaN(amt) && amt !== "") {
           addresses.push(addr);
-          amounts.push(ethers.utils.parseUnits(amt, 9)); // << 9 decimals for NuurCoin
+          amounts.push(ethers.utils.parseUnits(amt, 18)); // << 9 decimals for NuurCoin
         } else {
           alert('Invalid line: ' + line);
           return;
@@ -120,6 +120,7 @@
       }
 
       const abi = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"address[]","name":"recipients","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"multiSend","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdrawNative","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"token","type":"address"}],"name":"withdrawTokens","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"}];
+      
       const contract = new ethers.Contract(multiSendAddress, abi, signer);
 
       try {
