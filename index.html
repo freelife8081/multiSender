@@ -37,20 +37,24 @@
     const devAddress = "0xYourDevWalletAddress"; // Replace with your wallet address
 
     async function connectWallet() {
-      if (!window.ethereum) {
+      if (typeof window.ethereum === "undefined") {
         document.getElementById("status").innerText = "No Ethereum wallet detected. Please install MetaMask.";
         return;
       }
+
       try {
+        // Request account access
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         const address = await signer.getAddress();
         const net = await provider.getNetwork();
+
         if (net.chainId !== 97453) {
           alert("Please switch to the Sidra Chain network");
           return;
         }
+
         document.getElementById("connectBtn").innerText = "Wallet Connected";
         document.getElementById("connectBtn").disabled = true;
         document.getElementById("walletAddress").innerText = `Connected: ${address}`;
