@@ -11,7 +11,9 @@
     textarea, input { width: 100%; margin: 10px 0; padding: 10px; }
     button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
     #status { margin-top: 15px; font-weight: bold; }
+    #walletAddress { margin-top: 10px; font-size: 0.9em; color: #333; }
     img { display: block; margin: auto; max-width: 100px; }
+    a { color: green; }
   </style>
 </head>
 <body>
@@ -19,6 +21,7 @@
     <img src="logo.png" alt="Logo">
     <h2>Sidra Token MultiSend</h2>
     <button onclick="connectWallet()">Connect Wallet</button>
+    <div id="walletAddress">Not connected</div>
     <input id="token" placeholder="Token Contract Address (ERC-20)" />
     <textarea id="data" rows="10" placeholder="Enter address and amount per line:
 0xabc...123, 100
@@ -38,12 +41,14 @@
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
+        const address = await signer.getAddress();
         const net = await provider.getNetwork();
         if (net.chainId !== 97453) {
           alert("Please switch to the Sidra Chain network");
-        } else {
-          document.getElementById("status").innerText = "Wallet connected.";
+          return;
         }
+        document.getElementById("walletAddress").innerText = `Connected: ${address}`;
+        document.getElementById("status").innerText = "Wallet connected.";
       }
     }
 
@@ -55,14 +60,18 @@
 
       for (const line of lines) {
         const [addr, amt] = line.split(',').map(s => s.trim());
-        if (ethers.utils.isAddress(addr) && !isNaN(amt)) {
+        if (ethers.utils.isAddress(addr) && !isNaN(amt) && amt !== "") {
           addresses.push(addr);
           amounts.push(ethers.utils.parseUnits(amt, 18));
         }
       }
 
-      if (!tokenAddress || addresses.length === 0) {
-        document.getElementById("status").innerText = "Invalid inputs.";
+      if (!tokenAddress) {
+        alert("Please enter a token contract address.");
+        return;
+      }
+      if (addresses.length === 0) {
+        alert("Please enter at least one valid recipient and amount.");
         return;
       }
 
@@ -71,9 +80,9 @@
 
       try {
         const tx = await contract.multiSend(tokenAddress, addresses, amounts);
-        document.getElementById("status").innerText = "Transaction sent: " + tx.hash;
+        document.getElementById("status").innerHTML = `Transaction sent: <a href='https://ledger.sidrachain.com/tx/${tx.hash}' target='_blank'>View on Ledger</a>`;
         await tx.wait();
-        document.getElementById("status").innerText = "Transaction confirmed!";
+        document.getElementById("status").innerHTML = `Transaction confirmed: <a href='https://ledger.sidrachain.com/tx/${tx.hash}' target='_blank'>View on Ledger</a>`;
       } catch (err) {
         document.getElementById("status").innerText = "Error: " + err.message;
       }
